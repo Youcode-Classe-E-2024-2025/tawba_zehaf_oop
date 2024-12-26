@@ -7,7 +7,7 @@ class TaskController {
     private $user;
 
     public function __construct($db) {
-        $this->task = new Task($db);
+        $this->task = new Task(id: $db);
         $this->user = new User($db);
     }
 

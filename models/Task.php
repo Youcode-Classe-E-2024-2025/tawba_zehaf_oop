@@ -12,4 +12,6 @@ class Task {
     public $assigned_to;
     public $created_at;
     public $updated_at;
+    public function __construct($id, $title, $description, $status, $type, $assigned_to, $created_at, $updated_at) {
+}
 }
