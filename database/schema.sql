@@ -18,7 +18,10 @@ CREATE TABLE IF NOT EXISTS tasks (
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (assigned_to) REFERENCES users(id)
-);-- Insert users into the 'users' table
+
+);
+-- many-to-one relationship between tasks and users
+-- Insert users into the 'users' table
 INSERT INTO users (username, email) VALUES ('john_doe', 'john.doe@example.com');
 INSERT INTO users (username, email) VALUES ('jane_smith', 'jane.smith@example.com');
 INSERT INTO users (username, email) VALUES ('alex_jones', 'alex.jones@example.com');
