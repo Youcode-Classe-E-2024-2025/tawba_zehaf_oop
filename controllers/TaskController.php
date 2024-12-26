@@ -1,13 +1,10 @@
 <?php
-require_once 'models/Task.php';  // Ensure this points to the correct path
-require_once 'models/User.php';   // Ensure this points to the correct path
-
 class TaskController {
     private $task;
     private $user;
 
     public function __construct($db) {
-        $this->task = new Task(id: $db);
+        $this->task = new Task($db);
         $this->user = new User($db);
     }
 
