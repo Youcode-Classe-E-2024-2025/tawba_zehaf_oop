@@ -2,8 +2,6 @@
 class Task {
     private $conn;
     private $table = "tasks";
-
-    // Properties
     public $id;
     public $title;
     public $description;

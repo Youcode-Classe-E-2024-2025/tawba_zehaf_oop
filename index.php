@@ -1,6 +1,7 @@
 <?php
 session_start();
-
+require_once 'auth/login.php';
+require_once 'auth/signup.php';
 require_once 'config/Database.php';
 require_once 'models/Task.php';
 require_once 'models/User.php';
