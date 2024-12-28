@@ -14,7 +14,7 @@ class UserController extends Controller {
     public function login() {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $this->validateCSRFToken();
-            $username = filter_input(INPUT_POST, 'username', FILTER_SANITIZE_STRING);
+            $username = filter_input(INPUT_POST, 'username', FILTER_SANITIZE_FULL_SPECIAL_CHARS);
             $password = $_POST['password']; // We don't sanitize passwords
 
             $user = $this->auth->login($username, $password);
@@ -35,6 +35,9 @@ class UserController extends Controller {
     }
 
     public function register() {
+        error_log('Session data: ' . print_r($_SESSION, true));
+        error_log('POST data: ' . print_r($_POST, true));
+
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $this->validateCSRFToken();
             $username = filter_input(INPUT_POST, 'username', FILTER_SANITIZE_STRING);
@@ -55,7 +58,9 @@ class UserController extends Controller {
                 $this->render('register', ['error' => $error, 'csrf_token' => $this->generateCSRFToken()]);
             }
         } else {
-            $this->render('register', ['csrf_token' => $this->generateCSRFToken()]);
+            $csrf_token = $this->generateCSRFToken();
+            error_log('Generated CSRF token: ' . $csrf_token);
+            $this->render('register', ['csrf_token' => $csrf_token]);
         }
     }
 
@@ -150,9 +155,15 @@ class UserController extends Controller {
     }
 
     private function validateCSRFToken() {
+        error_log('Validating CSRF token');
+        error_log('Session token: ' . ($_SESSION['csrf_token'] ?? 'not set'));
+        error_log('POST token: ' . ($_POST['csrf_token'] ?? 'not set'));
+
         if (!isset($_POST['csrf_token']) || $_POST['csrf_token'] !== $_SESSION['csrf_token']) {
+            error_log('CSRF validation failed');
             die('CSRF token validation failed');
         }
+        error_log('CSRF validation passed');
     }
 
     private function regenerateSession() {
