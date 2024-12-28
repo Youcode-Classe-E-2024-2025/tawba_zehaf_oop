@@ -1,6 +1,6 @@
 <?php
 
-require_once __DIR__ . '/../models/Authentification.php';
+require_once __DIR__ . '/../models/Authentication.php';
 require_once __DIR__ . '/Controller.php';
 
 class UserController extends Controller {
@@ -13,8 +13,9 @@ class UserController extends Controller {
 
     public function login() {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $username = $_POST['username'];
-            $password = $_POST['password'];
+            $this->validateCSRFToken();
+            $username = filter_input(INPUT_POST, 'username', FILTER_SANITIZE_STRING);
+            $password = $_POST['password']; // We don't sanitize passwords
 
             $user = $this->auth->login($username, $password);
 
@@ -22,22 +23,23 @@ class UserController extends Controller {
                 $_SESSION['user_id'] = $user['id'];
                 $_SESSION['username'] = $user['username'];
                 $_SESSION['role'] = $user['role'];
-                header("Location: index.php?action=tasks");
-                exit;
+                $this->regenerateSession();
+                echo json_encode(['success' => true, 'redirect' => 'index.php?action=tasks']);
             } else {
-                $error = "Invalid username or password";
-                $this->render('login', ['error' => $error]);
+                echo json_encode(['success' => false, 'message' => 'Invalid username or password']);
             }
+            exit;
         } else {
-            $this->render('login');
+            $this->render('login', ['csrf_token' => $this->generateCSRFToken()]);
         }
     }
 
     public function register() {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $username = $_POST['username'];
-            $email = $_POST['email'];
-            $password = $_POST['password'];
+            $this->validateCSRFToken();
+            $username = filter_input(INPUT_POST, 'username', FILTER_SANITIZE_STRING);
+            $email = filter_input(INPUT_POST, 'email', FILTER_SANITIZE_EMAIL);
+            $password = $_POST['password']; // We don't sanitize passwords
 
             $user_id = $this->auth->register($username, $email, $password);
 
@@ -45,25 +47,27 @@ class UserController extends Controller {
                 $_SESSION['user_id'] = $user_id;
                 $_SESSION['username'] = $username;
                 $_SESSION['role'] = 'user';
+                $this->regenerateSession();
                 header("Location: index.php?action=tasks");
                 exit;
             } else {
                 $error = "Registration failed. Username or email may already exist.";
-                $this->render('register', ['error' => $error]);
+                $this->render('register', ['error' => $error, 'csrf_token' => $this->generateCSRFToken()]);
             }
         } else {
-            $this->render('register');
+            $this->render('register', ['csrf_token' => $this->generateCSRFToken()]);
         }
     }
 
     public function logout() {
+        $this->regenerateSession();
         session_destroy();
         header("Location: index.php?action=login");
         exit;
     }
 
     public function listUsers() {
-        if ($_SESSION['role'] !== 'admin') {
+        if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
             header("Location: index.php?action=tasks");
             exit;
         }
@@ -73,7 +77,7 @@ class UserController extends Controller {
         $stmt->execute();
         $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-        $this->render('user_list', ['users' => $users]);
+        $this->render('user_list', ['users' => $users, 'csrf_token' => $this->generateCSRFToken()]);
     }
 
     public function editUser() {
@@ -82,12 +86,13 @@ class UserController extends Controller {
             exit;
         }
 
-        $id = $_GET['id'] ?? null;
+        $id = filter_input(INPUT_GET, 'id', FILTER_SANITIZE_NUMBER_INT);
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $username = $_POST['username'];
-            $email = $_POST['email'];
-            $role = $_POST['role'];
+            $this->validateCSRFToken();
+            $username = filter_input(INPUT_POST, 'username', FILTER_SANITIZE_STRING);
+            $email = filter_input(INPUT_POST, 'email', FILTER_SANITIZE_EMAIL);
+            $role = filter_input(INPUT_POST, 'role', FILTER_SANITIZE_STRING);
 
             $query = "UPDATE users SET username = :username, email = :email, role = :role WHERE id = :id";
             $stmt = $this->db->prepare($query);
@@ -110,7 +115,7 @@ class UserController extends Controller {
         $stmt->execute();
         $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        $this->render('edit_user', ['user' => $user, 'error' => $error ?? null]);
+        $this->render('edit_user', ['user' => $user, 'error' => $error ?? null, 'csrf_token' => $this->generateCSRFToken()]);
     }
 
     public function deleteUser() {
@@ -119,7 +124,8 @@ class UserController extends Controller {
             exit;
         }
 
-        $id = $_GET['id'] ?? null;
+        $this->validateCSRFToken();
+        $id = filter_input(INPUT_GET, 'id', FILTER_SANITIZE_NUMBER_INT);
 
         if ($id) {
             $query = "DELETE FROM users WHERE id = :id";
@@ -134,5 +140,25 @@ class UserController extends Controller {
 
         header("Location: index.php?action=list_users&error=delete_failed");
         exit;
+    }
+
+    private function generateCSRFToken() {
+        if (!isset($_SESSION['csrf_token'])) {
+            $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+        }
+        return $_SESSION['csrf_token'];
+    }
+
+    private function validateCSRFToken() {
+        if (!isset($_POST['csrf_token']) || $_POST['csrf_token'] !== $_SESSION['csrf_token']) {
+            die('CSRF token validation failed');
+        }
+    }
+
+    private function regenerateSession() {
+        $old_session_id = session_id();
+        session_regenerate_id(true);
+        $new_session_id = session_id();
+        // Update the session ID in the database if you're storing sessions there
     }
 }
