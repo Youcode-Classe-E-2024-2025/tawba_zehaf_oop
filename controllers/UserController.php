@@ -14,7 +14,7 @@ class UserController extends Controller {
     public function login() {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $this->validateCSRFToken();
-            $username = filter_input(INPUT_POST, 'username', FILTER_SANITIZE_FULL_SPECIAL_CHARS);
+            $username = filter_input(INPUT_POST, 'username', FILTER_SANITIZE_SPECIAL_CHARS); // Updated to sanitize special chars
             $password = $_POST['password']; // We don't sanitize passwords
 
             $user = $this->auth->login($username, $password);
@@ -40,8 +40,8 @@ class UserController extends Controller {
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $this->validateCSRFToken();
-            $username = filter_input(INPUT_POST, 'username', FILTER_SANITIZE_STRING);
-            $email = filter_input(INPUT_POST, 'email', FILTER_SANITIZE_EMAIL);
+            $username = filter_input(INPUT_POST, 'username', FILTER_SANITIZE_SPECIAL_CHARS); // Updated to sanitize special chars
+            $email = filter_input(INPUT_POST, 'email', FILTER_SANITIZE_EMAIL); // Email sanitization remains the same
             $password = $_POST['password']; // We don't sanitize passwords
 
             $user_id = $this->auth->register($username, $email, $password);
@@ -95,9 +95,9 @@ class UserController extends Controller {
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $this->validateCSRFToken();
-            $username = filter_input(INPUT_POST, 'username', FILTER_SANITIZE_STRING);
-            $email = filter_input(INPUT_POST, 'email', FILTER_SANITIZE_EMAIL);
-            $role = filter_input(INPUT_POST, 'role', FILTER_SANITIZE_STRING);
+            $username = filter_input(INPUT_POST, 'username', FILTER_SANITIZE_SPECIAL_CHARS); // Updated to sanitize special chars
+            $email = filter_input(INPUT_POST, 'email', FILTER_SANITIZE_EMAIL); // Email sanitization remains the same
+            $role = filter_input(INPUT_POST, 'role', FILTER_SANITIZE_SPECIAL_CHARS); // Updated to sanitize special chars
 
             $query = "UPDATE users SET username = :username, email = :email, role = :role WHERE id = :id";
             $stmt = $this->db->prepare($query);
