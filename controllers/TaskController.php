@@ -75,8 +75,23 @@ public function update() {
     $this->render('task_edit', ['task' => $this->task, 'users' => $users, 'error' => $error ?? null]);
 }
 public function delete() {
+    if ($_SESSION['role'] !== 'admin') {
+        header("Location: index.php?action=tasks");
+        exit;
+    }
 
-    
+    $id = $_GET['id'] ?? null;
+
+    if ($id) {
+        $this->task->id = $id;
+        if ($this->task->delete()) {
+            header("Location: index.php?action=tasks");
+            exit;
+        }
+    }
+
+    header("Location: index.php?action=tasks&error=delete_failed");
+    exit;
 }
 private function getUsers() {
     $query = "SELECT id, username FROM users";
