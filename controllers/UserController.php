@@ -1,6 +1,6 @@
 <?php
 
-require_once __DIR__ . '/../models/Authentication.php';
+require_once __DIR__ . '/../models/Authentification.php';
 require_once __DIR__ . '/Controller.php';
 
 class UserController extends Controller {
