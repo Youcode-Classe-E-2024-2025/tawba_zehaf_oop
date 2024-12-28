@@ -20,7 +20,17 @@ class TaskController extends Controller {
         $tasks = $this->task->read();
         $this->render('task_list', ['tasks' => $tasks, 'csrf_token' => $this->generateCSRFToken()]);
     }
-
+    public function listTasks() {
+        // Fetch tasks from the database
+        $query = "SELECT * FROM tasks";
+        $stmt = $this->db->prepare($query);
+        $stmt->execute();
+        $tasks = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+        // Pass tasks to the view
+        $this->render('index', ['tasks' => $tasks]);
+    }
+    
     public function create() {
         if (!isset($_SESSION['user_id'])) {
             header("Location: index.php?action=login");
