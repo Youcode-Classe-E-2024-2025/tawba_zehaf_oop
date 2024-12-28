@@ -5,27 +5,7 @@ document.addEventListener('DOMContentLoaded', function() {
         select.addEventListener('change', function() {
             const taskId = this.getAttribute('data-task-id');
             const newStatus = this.value;
-            fetch('index.php?action=update_task_status', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                },
-                body: `id=${taskId}&status=${newStatus}`
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    alert('Task status updated successfully');
-                } else {
-                    alert('Failed to update task status');
-                    this.value = this.getAttribute('data-original-status');
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('An error occurred while updating task status');
-                this.value = this.getAttribute('data-original-status');
-            });
+            updateTaskStatus(taskId, newStatus);
         });
     });
 
@@ -46,11 +26,25 @@ document.addEventListener('DOMContentLoaded', function() {
                 this.itemType = null;
             },
             confirmDelete() {
-                window.location.href = `index.php?action=delete_${this.itemType}&id=${this.itemId}`;
+                Swal.fire({
+                    title: 'Are you sure?',
+                    text: "You won't be able to revert this!",
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#3085d6',
+                    cancelButtonColor: '#d33',
+                    confirmButtonText: 'Yes, delete it!'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        window.location.href = `index.php?action=delete_${this.itemType}&id=${this.itemId}`;
+                    }
+                });
             }
         }));
     }
 });
+
+
 document.getElementById('loginForm').addEventListener('submit', function(e) {
     e.preventDefault();
     fetch(this.action, {
@@ -78,3 +72,45 @@ document.getElementById('loginForm').addEventListener('submit', function(e) {
             });
         });
 });
+function updateTaskStatus(taskId, newStatus) {
+    fetch('index.php?action=update_task_status', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-CSRF-Token': '<?php echo $csrf_token; ?>'
+            },
+            body: `id=${taskId}&status=${newStatus}&csrf_token=<?php echo $csrf_token; ?>`
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Success!',
+                    text: 'Task status updated successfully',
+                    timer: 1500,
+                    showConfirmButton: false
+                });
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Update Failed',
+                    text: data.message || 'Failed to update task status',
+                });
+                // Revert the select element to its original value
+                document.querySelector(`select[data-task-id="${taskId}"]`).value = document.querySelector(
+                    `select[data-task-id="${taskId}"]`).getAttribute('data-original-status');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            Swal.fire({
+                icon: 'error',
+                title: 'Oops...',
+                text: 'An error occurred while updating task status',
+            });
+            // Revert the select element to its original value
+            document.querySelector(`select[data-task-id="${taskId}"]`).value = document.querySelector(
+                `select[data-task-id="${taskId}"]`).getAttribute('data-original-status');
+        });
+}
