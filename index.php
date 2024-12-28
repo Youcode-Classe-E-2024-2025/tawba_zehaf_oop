@@ -31,8 +31,25 @@ switch ($action) {
     case 'create_task':
         $taskController->create();
         break;
+    case 'update_task':
+        $taskController->update();
+        break;
+    case 'delete_task':
+        $taskController->delete();
+        break;
+    case 'update_task_status':
+        $taskController->updateStatus();
+        break;
+    case 'list_users':
+        $userController->listUsers();
+        break;
+    case 'edit_user':
+        $userController->editUser();
+        break;
+    case 'delete_user':
+        $userController->deleteUser();
+        break;
     default:
         header("Location: index.php?action=login");
         exit;
 }
-
