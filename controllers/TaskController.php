@@ -1,4 +1,4 @@
-<?php
+<?php 
 
 require_once __DIR__ . '/Controller.php';
 require_once __DIR__ . '/../models/Task.php';
@@ -29,10 +29,10 @@ class TaskController extends Controller {
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $this->validateCSRFToken();
-            $this->task->title = filter_input(INPUT_POST, 'title', FILTER_SANITIZE_STRING);
-            $this->task->description = filter_input(INPUT_POST, 'description', FILTER_SANITIZE_STRING);
-            $this->task->status = filter_input(INPUT_POST, 'status', FILTER_SANITIZE_STRING);
-            $this->task->type = filter_input(INPUT_POST, 'type', FILTER_SANITIZE_STRING);
+            $this->task->title = filter_input(INPUT_POST, 'title', FILTER_SANITIZE_SPECIAL_CHARS); // Updated to full special chars
+            $this->task->description = filter_input(INPUT_POST, 'description', FILTER_SANITIZE_SPECIAL_CHARS); // Updated to full special chars
+            $this->task->status = filter_input(INPUT_POST, 'status', FILTER_SANITIZE_SPECIAL_CHARS); // Updated to full special chars
+            $this->task->type = filter_input(INPUT_POST, 'type', FILTER_SANITIZE_SPECIAL_CHARS); // Updated to full special chars
             $this->task->assigned_to = filter_input(INPUT_POST, 'assigned_to', FILTER_SANITIZE_NUMBER_INT);
             $this->task->created_by = $_SESSION['user_id'];
 
@@ -59,10 +59,10 @@ class TaskController extends Controller {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $this->validateCSRFToken();
             $this->task->id = $id;
-            $this->task->title = filter_input(INPUT_POST, 'title', FILTER_SANITIZE_STRING);
-            $this->task->description = filter_input(INPUT_POST, 'description', FILTER_SANITIZE_STRING);
-            $this->task->status = filter_input(INPUT_POST, 'status', FILTER_SANITIZE_STRING);
-            $this->task->type = filter_input(INPUT_POST, 'type', FILTER_SANITIZE_STRING);
+            $this->task->title = filter_input(INPUT_POST, 'title', FILTER_SANITIZE_SPECIAL_CHARS); // Updated to full special chars
+            $this->task->description = filter_input(INPUT_POST, 'description', FILTER_SANITIZE_SPECIAL_CHARS); // Updated to full special chars
+            $this->task->status = filter_input(INPUT_POST, 'status', FILTER_SANITIZE_SPECIAL_CHARS); // Updated to full special chars
+            $this->task->type = filter_input(INPUT_POST, 'type', FILTER_SANITIZE_SPECIAL_CHARS); // Updated to full special chars
             $this->task->assigned_to = filter_input(INPUT_POST, 'assigned_to', FILTER_SANITIZE_NUMBER_INT);
 
             if ($this->task->update()) {
@@ -108,7 +108,7 @@ class TaskController extends Controller {
         $this->validateCSRFToken();
 
         $id = filter_input(INPUT_POST, 'id', FILTER_SANITIZE_NUMBER_INT);
-        $status = filter_input(INPUT_POST, 'status', FILTER_SANITIZE_STRING);
+        $status = filter_input(INPUT_POST, 'status', FILTER_SANITIZE_SPECIAL_CHARS); // Updated to full special chars
 
         if (!$id || !$status) {
             echo json_encode(['success' => false, 'message' => 'Invalid input']);
@@ -148,3 +148,4 @@ class TaskController extends Controller {
         }
     }
 }
+?>
