@@ -74,3 +74,13 @@ public function update() {
     $users = $this->getUsers();
     $this->render('task_edit', ['task' => $this->task, 'users' => $users, 'error' => $error ?? null]);
 }
+public function delete() {
+
+    
+}
+private function getUsers() {
+    $query = "SELECT id, username FROM users";
+    $stmt = $this->db->prepare($query);
+    $stmt->execute();
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
