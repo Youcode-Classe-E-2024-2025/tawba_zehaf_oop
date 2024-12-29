@@ -1,3 +1,41 @@
+<?php
+// Include the Database class
+include 'config/database.php';
+
+// Start the session
+session_start();
+
+// Check if the session is set properly
+if (!isset($_SESSION['role'])) {
+    // Redirect to login or show a proper message
+    header('Location: login.php');
+    exit();
+}
+
+// Create a new Database object and get the connection
+$database = new Database();
+$conn = $database->getConnection();
+
+// Fetch tasks from the database
+$tasks = [];
+try {
+    // SQL query to fetch tasks
+    $sql = "SELECT t.id, t.title, t.description, t.status, t.type, t.assigned_to, u.name as assigned_to_name
+            FROM tasks t
+            LEFT JOIN users u ON t.assigned_to = u.id"; // Assuming 'tasks' and 'users' are your tables
+
+    $stmt = $conn->prepare($sql);
+    $stmt->execute();
+    $tasks = $stmt->fetchAll(PDO::FETCH_ASSOC); // Fetch all tasks as an associative array
+} catch (PDOException $e) {
+    echo "Error fetching tasks: " . $e->getMessage();
+}
+
+// If no tasks found, set an empty array
+if (empty($tasks)) {
+    $tasks = [];
+}
+?>
 <!DOCTYPE html>
 <html lang="en">
 
