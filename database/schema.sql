@@ -57,3 +57,7 @@ VALUES
 ('Add Search Functionality', 'Add a search feature to the tasks page', 'todo', 'feature', 8, 6),
 ('Improve Task Notifications', 'Send email notifications when a task is updated', 'todo', 'bug', 9, 3),
 ('Test New Features', 'Perform testing for the new features developed in the last sprint', 'doing', 'basic', 6, 2);
+
+
+
+INSERT INTO `users` (`username`, `email`, `password`, `role`) VALUES ('john_doee', 'john.doee@example.com', 'Password123', 'user'), ('janee_smith', 'janee.smith@example.com', 'SecurePass456', 'admin');

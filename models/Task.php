@@ -42,15 +42,26 @@ class Task {
         return false;
     }
 
-    public function read() {
+    public function read($user_id, $role) {
         $query = "SELECT t.id, t.title, t.description, t.status, t.type, t.assigned_to, u.username as assigned_to_name, t.created_by, c.username as created_by_name, t.created_at, t.updated_at 
                   FROM " . $this->table_name . " t 
                   LEFT JOIN users u ON t.assigned_to = u.id 
-                  LEFT JOIN users c ON t.created_by = c.id
-                  ORDER BY t.created_at DESC";
+                  LEFT JOIN users c ON t.created_by = c.id";
+        
+        if ($role !== 'admin') {
+            $query .= " WHERE t.assigned_to = :user_id";
+        }
+        
+        $query .= " ORDER BY t.created_at DESC";
+        
         $stmt = $this->conn->prepare($query);
+        
+        if ($role !== 'admin') {
+            $stmt->bindParam(':user_id', $user_id);
+        }
+        
         $stmt->execute();
-        return $stmt;
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
     public function update() {
@@ -109,6 +120,22 @@ class Task {
             $this->created_by = $row['created_by'];
             $this->created_at = $row['created_at'];
             $this->updated_at = $row['updated_at'];
+            return true;
+        }
+        return false;
+    }
+
+    public function updateStatus($id, $status) {
+        $query = "UPDATE " . $this->table_name . " SET status = :status WHERE id = :id";
+        $stmt = $this->conn->prepare($query);
+        
+        $status = htmlspecialchars(strip_tags($status));
+        $id = htmlspecialchars(strip_tags($id));
+
+        $stmt->bindParam(':status', $status);
+        $stmt->bindParam(':id', $id);
+
+        if($stmt->execute()) {
             return true;
         }
         return false;

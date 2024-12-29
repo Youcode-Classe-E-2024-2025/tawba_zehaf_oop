@@ -8,7 +8,7 @@ class TaskController extends Controller {
 
     public function __construct($db) {
         parent::__construct($db);
-        $this->task = new Task($this->db);
+        $this->task = new Task($db);
     }
 
     public function index() {
@@ -17,32 +17,22 @@ class TaskController extends Controller {
             exit;
         }
 
-        $tasks = $this->task->read();
+        $tasks = $this->task->read($_SESSION['user_id'], $_SESSION['role']);
         $this->render('task_list', ['tasks' => $tasks, 'csrf_token' => $this->generateCSRFToken()]);
     }
-    public function listTasks() {
-        // Fetch tasks from the database
-        $query = "SELECT * FROM tasks";
-        $stmt = $this->db->prepare($query);
-        $stmt->execute();
-        $tasks = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    
-        // Pass tasks to the view
-        $this->render('index', ['tasks' => $tasks]);
-    }
-    
+
     public function create() {
-        if (!isset($_SESSION['user_id'])) {
-            header("Location: index.php?action=login");
+        if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
+            header("Location: index.php?action=tasks");
             exit;
         }
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $this->validateCSRFToken();
-            $this->task->title = filter_input(INPUT_POST, 'title', FILTER_SANITIZE_SPECIAL_CHARS); // Updated to full special chars
-            $this->task->description = filter_input(INPUT_POST, 'description', FILTER_SANITIZE_SPECIAL_CHARS); // Updated to full special chars
-            $this->task->status = filter_input(INPUT_POST, 'status', FILTER_SANITIZE_SPECIAL_CHARS); // Updated to full special chars
-            $this->task->type = filter_input(INPUT_POST, 'type', FILTER_SANITIZE_SPECIAL_CHARS); // Updated to full special chars
+            $this->task->title = filter_input(INPUT_POST, 'title', FILTER_SANITIZE_SPECIAL_CHARS);
+            $this->task->description = filter_input(INPUT_POST, 'description', FILTER_SANITIZE_SPECIAL_CHARS);
+            $this->task->status = filter_input(INPUT_POST, 'status', FILTER_SANITIZE_SPECIAL_CHARS);
+            $this->task->type = filter_input(INPUT_POST, 'type', FILTER_SANITIZE_SPECIAL_CHARS);
             $this->task->assigned_to = filter_input(INPUT_POST, 'assigned_to', FILTER_SANITIZE_NUMBER_INT);
             $this->task->created_by = $_SESSION['user_id'];
 
@@ -59,8 +49,8 @@ class TaskController extends Controller {
     }
 
     public function update() {
-        if (!isset($_SESSION['user_id'])) {
-            header("Location: index.php?action=login");
+        if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
+            header("Location: index.php?action=tasks");
             exit;
         }
 
@@ -69,10 +59,10 @@ class TaskController extends Controller {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $this->validateCSRFToken();
             $this->task->id = $id;
-            $this->task->title = filter_input(INPUT_POST, 'title', FILTER_SANITIZE_SPECIAL_CHARS); // Updated to full special chars
-            $this->task->description = filter_input(INPUT_POST, 'description', FILTER_SANITIZE_SPECIAL_CHARS); // Updated to full special chars
-            $this->task->status = filter_input(INPUT_POST, 'status', FILTER_SANITIZE_SPECIAL_CHARS); // Updated to full special chars
-            $this->task->type = filter_input(INPUT_POST, 'type', FILTER_SANITIZE_SPECIAL_CHARS); // Updated to full special chars
+            $this->task->title = filter_input(INPUT_POST, 'title', FILTER_SANITIZE_SPECIAL_CHARS);
+            $this->task->description = filter_input(INPUT_POST, 'description', FILTER_SANITIZE_SPECIAL_CHARS);
+            $this->task->status = filter_input(INPUT_POST, 'status', FILTER_SANITIZE_SPECIAL_CHARS);
+            $this->task->type = filter_input(INPUT_POST, 'type', FILTER_SANITIZE_SPECIAL_CHARS);
             $this->task->assigned_to = filter_input(INPUT_POST, 'assigned_to', FILTER_SANITIZE_NUMBER_INT);
 
             if ($this->task->update()) {
@@ -118,22 +108,24 @@ class TaskController extends Controller {
         $this->validateCSRFToken();
 
         $id = filter_input(INPUT_POST, 'id', FILTER_SANITIZE_NUMBER_INT);
-        $status = filter_input(INPUT_POST, 'status', FILTER_SANITIZE_SPECIAL_CHARS); // Updated to full special chars
+        $status = filter_input(INPUT_POST, 'status', FILTER_SANITIZE_SPECIAL_CHARS);
 
         if (!$id || !$status) {
             echo json_encode(['success' => false, 'message' => 'Invalid input']);
             exit;
         }
 
-        $query = "UPDATE tasks SET status = :status WHERE id = :id";
-        $stmt = $this->db->prepare($query);
-        $stmt->bindParam(':status', $status);
-        $stmt->bindParam(':id', $id);
+        $task = new Task($this->db);
+        $task->getById($id);
 
-        if ($stmt->execute()) {
-            echo json_encode(['success' => true, 'message' => 'Task status updated successfully']);
+        if ($_SESSION['role'] === 'admin' || $task->assigned_to == $_SESSION['user_id']) {
+            if ($this->task->updateStatus($id, $status)) {
+                echo json_encode(['success' => true, 'message' => 'Task status updated successfully']);
+            } else {
+                echo json_encode(['success' => false, 'message' => 'Failed to update task status']);
+            }
         } else {
-            echo json_encode(['success' => false, 'message' => 'Failed to update task status']);
+            echo json_encode(['success' => false, 'message' => 'You don\'t have permission to update this task']);
         }
         exit;
     }
@@ -158,4 +150,3 @@ class TaskController extends Controller {
         }
     }
 }
-?>

@@ -8,11 +8,11 @@ class Authentication {
         $this->conn = $db;
     }
 
-    public function login($username, $password) {
-        $query = "SELECT id, username, password, role FROM " . $this->table_name . " WHERE username = :username";
+    public function login($email, $password) {
+        $query = "SELECT id, username, email, password, role FROM " . $this->table_name . " WHERE email = :email";
         $stmt = $this->conn->prepare($query);
-        $username = htmlspecialchars(strip_tags($username));
-        $stmt->bindParam(":username", $username);
+        $email = htmlspecialchars(strip_tags($email));
+        $stmt->bindParam(":email", $email);
         $stmt->execute();
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -20,6 +20,7 @@ class Authentication {
             return [
                 'id' => $row['id'],
                 'username' => $row['username'],
+                'email' => $row['email'],
                 'role' => $row['role']
             ];
         }

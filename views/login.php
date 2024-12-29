@@ -15,12 +15,12 @@
         <form action="index.php?action=login" method="post" class="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4"
             id="loginForm">
             <div class="mb-4">
-                <label class="block text-gray-700 text-sm font-bold mb-2" for="username">
-                    Username
+                <label class="block text-gray-700 text-sm font-bold mb-2" for="email">
+                    Email
                 </label>
                 <input
                     class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                    id="username" type="text" name="username" required>
+                    id="email" type="email" name="email" required>
             </div>
             <div class="mb-6">
                 <label class="block text-gray-700 text-sm font-bold mb-2" for="password">
@@ -47,6 +47,30 @@
     <script>
     document.getElementById('loginForm').addEventListener('submit', function(e) {
         e.preventDefault();
+
+        // Client-side validation
+        const email = document.getElementById('email').value;
+        const password = document.getElementById('password').value;
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+        if (!emailRegex.test(email)) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Invalid Email',
+                text: 'Please enter a valid email address',
+            });
+            return;
+        }
+
+        if (password.length < 8) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Invalid Password',
+                text: 'Password must be at least 8 characters long',
+            });
+            return;
+        }
+
         fetch(this.action, {
                 method: 'POST',
                 body: new FormData(this),
@@ -59,7 +83,7 @@
                     Swal.fire({
                         icon: 'error',
                         title: 'Login Failed',
-                        text: data.message || 'Invalid username or password',
+                        text: data.message || 'Invalid email or password',
                     });
                 }
             })

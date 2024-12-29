@@ -14,19 +14,33 @@ class UserController extends Controller {
     public function login() {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $this->validateCSRFToken();
-            $username = filter_input(INPUT_POST, 'username', FILTER_SANITIZE_SPECIAL_CHARS); // Updated to sanitize special chars
+            $email = filter_input(INPUT_POST, 'email', FILTER_SANITIZE_EMAIL);
             $password = $_POST['password']; // We don't sanitize passwords
 
-            $user = $this->auth->login($username, $password);
+            // Server-side validation
+            $errors = [];
+            if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                $errors[] = "Invalid email format";
+            }
+            if (strlen($password) < 8) {
+                $errors[] = "Password must be at least 8 characters long";
+            }
 
-            if ($user) {
-                $_SESSION['user_id'] = $user['id'];
-                $_SESSION['username'] = $user['username'];
-                $_SESSION['role'] = $user['role'];
-                $this->regenerateSession();
-                echo json_encode(['success' => true, 'redirect' => 'index.php?action=tasks']);
+            if (empty($errors)) {
+                $user = $this->auth->login($email, $password);
+
+                if ($user) {
+                    $_SESSION['user_id'] = $user['id'];
+                    $_SESSION['username'] = $user['username'];
+                    $_SESSION['email'] = $user['email'];
+                    $_SESSION['role'] = $user['role'];
+                    $this->regenerateSession();
+                    echo json_encode(['success' => true, 'redirect' => 'index.php?action=tasks']);
+                } else {
+                    echo json_encode(['success' => false, 'message' => 'Invalid email or password']);
+                }
             } else {
-                echo json_encode(['success' => false, 'message' => 'Invalid username or password']);
+                echo json_encode(['success' => false, 'message' => implode(", ", $errors)]);
             }
             exit;
         } else {
@@ -35,32 +49,44 @@ class UserController extends Controller {
     }
 
     public function register() {
-        error_log('Session data: ' . print_r($_SESSION, true));
-        error_log('POST data: ' . print_r($_POST, true));
-
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $this->validateCSRFToken();
-            $username = filter_input(INPUT_POST, 'username', FILTER_SANITIZE_SPECIAL_CHARS); // Updated to sanitize special chars
-            $email = filter_input(INPUT_POST, 'email', FILTER_SANITIZE_EMAIL); // Email sanitization remains the same
+            $username = filter_input(INPUT_POST, 'username', FILTER_SANITIZE_SPECIAL_CHARS);
+            $email = filter_input(INPUT_POST, 'email', FILTER_SANITIZE_EMAIL);
             $password = $_POST['password']; // We don't sanitize passwords
 
-            $user_id = $this->auth->register($username, $email, $password);
-
-            if ($user_id) {
-                $_SESSION['user_id'] = $user_id;
-                $_SESSION['username'] = $username;
-                $_SESSION['role'] = 'user';
-                $this->regenerateSession();
-                header("Location: index.php?action=tasks");
-                exit;
-            } else {
-                $error = "Registration failed. Username or email may already exist.";
-                $this->render('register', ['error' => $error, 'csrf_token' => $this->generateCSRFToken()]);
+            // Server-side validation
+            $errors = [];
+            if (!preg_match('/^[a-zA-Z0-9_]{3,20}$/', $username)) {
+                $errors[] = "Username must be 3-20 characters long and contain only letters, numbers, and underscores";
             }
+            if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                $errors[] = "Invalid email format";
+            }
+            if (strlen($password) < 8 || !preg_match('/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).+$/', $password)) {
+                $errors[] = "Password must be at least 8 characters long and contain at least one uppercase letter, one lowercase letter, and one number";
+            }
+
+            if (empty($errors)) {
+                $user_id = $this->auth->register($username, $email, $password);
+
+                if ($user_id) {
+                    $_SESSION['user_id'] = $user_id;
+                    $_SESSION['username'] = $username;
+                    $_SESSION['email'] = $email;
+                    $_SESSION['role'] = 'user';
+                    $this->regenerateSession();
+                    header("Location: index.php?action=tasks");
+                    exit;
+                } else {
+                    $error = "Registration failed. Username or email may already exist.";
+                }
+            } else {
+                $error = implode(", ", $errors);
+            }
+            $this->render('register', ['error' => $error, 'csrf_token' => $this->generateCSRFToken()]);
         } else {
-            $csrf_token = $this->generateCSRFToken();
-            error_log('Generated CSRF token: ' . $csrf_token);
-            $this->render('register', ['csrf_token' => $csrf_token]);
+            $this->render('register', ['csrf_token' => $this->generateCSRFToken()]);
         }
     }
 
@@ -95,9 +121,9 @@ class UserController extends Controller {
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $this->validateCSRFToken();
-            $username = filter_input(INPUT_POST, 'username', FILTER_SANITIZE_SPECIAL_CHARS); // Updated to sanitize special chars
-            $email = filter_input(INPUT_POST, 'email', FILTER_SANITIZE_EMAIL); // Email sanitization remains the same
-            $role = filter_input(INPUT_POST, 'role', FILTER_SANITIZE_SPECIAL_CHARS); // Updated to sanitize special chars
+            $username = filter_input(INPUT_POST, 'username', FILTER_SANITIZE_SPECIAL_CHARS);
+            $email = filter_input(INPUT_POST, 'email', FILTER_SANITIZE_EMAIL);
+            $role = filter_input(INPUT_POST, 'role', FILTER_SANITIZE_SPECIAL_CHARS);
 
             $query = "UPDATE users SET username = :username, email = :email, role = :role WHERE id = :id";
             $stmt = $this->db->prepare($query);
@@ -155,15 +181,9 @@ class UserController extends Controller {
     }
 
     private function validateCSRFToken() {
-        error_log('Validating CSRF token');
-        error_log('Session token: ' . ($_SESSION['csrf_token'] ?? 'not set'));
-        error_log('POST token: ' . ($_POST['csrf_token'] ?? 'not set'));
-
         if (!isset($_POST['csrf_token']) || $_POST['csrf_token'] !== $_SESSION['csrf_token']) {
-            error_log('CSRF validation failed');
             die('CSRF token validation failed');
         }
-        error_log('CSRF validation passed');
     }
 
     private function regenerateSession() {
