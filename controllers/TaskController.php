@@ -2,6 +2,7 @@
 
 require_once __DIR__ . '/Controller.php';
 require_once __DIR__ . '/../models/Task.php';
+require_once __DIR__ . '/../models/Authentification.php';
 
 class TaskController extends Controller {
     private $task;
@@ -73,9 +74,9 @@ class TaskController extends Controller {
             }
         }
 
-        $this->task->getById($id);
+        $task = $this->task->getById($id);
         $users = $this->getUsers();
-        $this->render('task_edit', ['task' => $this->task, 'users' => $users, 'error' => $error ?? null, 'csrf_token' => $this->generateCSRFToken()]);
+        $this->render('task_edit', ['task' => $task, 'users' => $users, 'error' => $error ?? null, 'csrf_token' => $this->generateCSRFToken()]);
     }
 
     public function delete() {
@@ -88,7 +89,6 @@ class TaskController extends Controller {
         $id = filter_input(INPUT_GET, 'id', FILTER_SANITIZE_NUMBER_INT);
 
         if ($id) {
-            $this->task->id = $id;
             if ($this->task->delete()) {
                 header("Location: index.php?action=tasks");
                 exit;
@@ -115,10 +115,9 @@ class TaskController extends Controller {
             exit;
         }
 
-        $task = new Task($this->db);
-        $task->getById($id);
-
-        if ($_SESSION['role'] === 'admin' || $task->assigned_to == $_SESSION['user_id']) {
+        $task = $this->task->getById($id);
+        // || $task->assigned_to == $_SESSION['user_id']
+        if ($_SESSION['role'] === 'admin' ) {
             if ($this->task->updateStatus($id, $status)) {
                 echo json_encode(['success' => true, 'message' => 'Task status updated successfully']);
             } else {
