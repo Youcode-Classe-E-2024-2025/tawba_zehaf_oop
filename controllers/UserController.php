@@ -1,14 +1,14 @@
 <?php
 
-require_once __DIR__ . '/../models/User.php';
+require_once __DIR__ . '/../models/Authentification.php';
 require_once __DIR__ . '/Controller.php';
 
 class UserController extends Controller {
-    private $user;
+    private $auth;
 
     public function __construct($db) {
         parent::__construct($db);
-        $this->user = new User($db);
+        $this->auth = new Authentication($this->db);
     }
 
     public function login() {
@@ -27,7 +27,7 @@ class UserController extends Controller {
             }
 
             if (empty($errors)) {
-                $user = $this->user->login($email, $password);
+                $user = $this->auth->login($email, $password);
 
                 if ($user) {
                     $_SESSION['user_id'] = $user['id'];
@@ -68,7 +68,7 @@ class UserController extends Controller {
             }
 
             if (empty($errors)) {
-                $user_id = $this->user->create($username, $email, $password);
+                $user_id = $this->auth->register($username, $email, $password);
 
                 if ($user_id) {
                     $_SESSION['user_id'] = $user_id;
@@ -103,7 +103,11 @@ class UserController extends Controller {
             exit;
         }
 
-        $users = $this->user->getAll();
+        $query = "SELECT id, username, email, role FROM users";
+        $stmt = $this->db->prepare($query);
+        $stmt->execute();
+        $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
         $this->render('user_list', ['users' => $users, 'csrf_token' => $this->generateCSRFToken()]);
     }
 
@@ -121,7 +125,14 @@ class UserController extends Controller {
             $email = filter_input(INPUT_POST, 'email', FILTER_SANITIZE_EMAIL);
             $role = filter_input(INPUT_POST, 'role', FILTER_SANITIZE_SPECIAL_CHARS);
 
-            if ($this->user->update($id, $username, $email, $role)) {
+            $query = "UPDATE users SET username = :username, email = :email, role = :role WHERE id = :id";
+            $stmt = $this->db->prepare($query);
+            $stmt->bindParam(':username', $username);
+            $stmt->bindParam(':email', $email);
+            $stmt->bindParam(':role', $role);
+            $stmt->bindParam(':id', $id);
+
+            if ($stmt->execute()) {
                 header("Location: index.php?action=list_users");
                 exit;
             } else {
@@ -129,7 +140,12 @@ class UserController extends Controller {
             }
         }
 
-        $user = $this->user->getById($id);
+        $query = "SELECT id, username, email, role FROM users WHERE id = :id";
+        $stmt = $this->db->prepare($query);
+        $stmt->bindParam(':id', $id);
+        $stmt->execute();
+        $user = $stmt->fetch(PDO::FETCH_ASSOC);
+
         $this->render('edit_user', ['user' => $user, 'error' => $error ?? null, 'csrf_token' => $this->generateCSRFToken()]);
     }
 
@@ -143,7 +159,11 @@ class UserController extends Controller {
         $id = filter_input(INPUT_GET, 'id', FILTER_SANITIZE_NUMBER_INT);
 
         if ($id) {
-            if ($this->user->delete($id)) {
+            $query = "DELETE FROM users WHERE id = :id";
+            $stmt = $this->db->prepare($query);
+            $stmt->bindParam(':id', $id);
+
+            if ($stmt->execute()) {
                 header("Location: index.php?action=list_users");
                 exit;
             }

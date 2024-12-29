@@ -2,7 +2,6 @@
 
 require_once __DIR__ . '/Controller.php';
 require_once __DIR__ . '/../models/Task.php';
-require_once __DIR__ . '/../models/Authentification.php';
 
 class TaskController extends Controller {
     private $task;
@@ -74,9 +73,9 @@ class TaskController extends Controller {
             }
         }
 
-        $task = $this->task->getById($id);
+        $this->task->getById($id);
         $users = $this->getUsers();
-        $this->render('task_edit', ['task' => $task, 'users' => $users, 'error' => $error ?? null, 'csrf_token' => $this->generateCSRFToken()]);
+        $this->render('task_edit', ['task' => $this->task, 'users' => $users, 'error' => $error ?? null, 'csrf_token' => $this->generateCSRFToken()]);
     }
 
     public function delete() {
@@ -89,6 +88,7 @@ class TaskController extends Controller {
         $id = filter_input(INPUT_GET, 'id', FILTER_SANITIZE_NUMBER_INT);
 
         if ($id) {
+            $this->task->id = $id;
             if ($this->task->delete()) {
                 header("Location: index.php?action=tasks");
                 exit;
@@ -115,10 +115,11 @@ class TaskController extends Controller {
             exit;
         }
 
-        $task = $this->task->getById($id);
-        // || $task->assigned_to == $_SESSION['user_id']
-        if ($_SESSION['role'] === 'admin' ) {
-            if ($this->task->updateStatus($id, $status)) {
+        $task = new Task($this->db);
+        $task->getById($id);
+
+        if ($_SESSION['role'] === 'admin' || $task->assigned_to == $_SESSION['user_id']) {
+            if ($task->updateStatus($id, $status)) {
                 echo json_encode(['success' => true, 'message' => 'Task status updated successfully']);
             } else {
                 echo json_encode(['success' => false, 'message' => 'Failed to update task status']);
@@ -129,12 +130,34 @@ class TaskController extends Controller {
         exit;
     }
 
+    public function editTask() {
+        $task_id = filter_input(INPUT_GET, 'id', FILTER_SANITIZE_NUMBER_INT);
+        
+        if ($task_id) {
+            $query = "SELECT * FROM tasks WHERE id = :id";
+            $stmt = $this->db->prepare($query);
+            $stmt->bindParam(':id', $task_id);
+            $stmt->execute();
+            $task = $stmt->fetch(PDO::FETCH_OBJ);
+            
+            if ($task) {
+                $this->render('task_edit', ['task' => $task, 'users' => $this->getUsers(), 'csrf_token' => $this->generateCSRFToken()]);
+            } else {
+                // Task not found, handle the error
+                $error = "Task not found";
+                $this->render('task_edit', ['error' => $error, 'csrf_token' => $this->generateCSRFToken()]);
+            }
+        } else {
+            // No task ID provided, redirect or handle error
+            header("Location: index.php?action=tasks");
+            exit;
+        }
+    }
     private function getUsers() {
         $query = "SELECT id, username FROM users";
         $stmt = $this->db->prepare($query);
         $stmt->execute();
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
-    }
+        return $stmt->fetchAll(PDO::FETCH_ASSOC); }
 
     private function generateCSRFToken() {
         if (!isset($_SESSION['csrf_token'])) {

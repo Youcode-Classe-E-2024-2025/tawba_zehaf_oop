@@ -1,7 +1,7 @@
 <?php
 session_start();
 require_once 'config/Database.php';
-require_once 'models/Task.php';
+require_once 'models\Task.php';
 
 // Check if the user is logged in
 if (!isset($_SESSION['user_id'])) {

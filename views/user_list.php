@@ -1,88 +1,192 @@
+<?php
+// Include the Database class
+include 'config/database.php';
+
+// Start the session
+session_start();
+
+// Check if the session is set properly
+if (!isset($_SESSION['role'])) {
+    // Redirect to login or show a proper message
+    header('Location: login.php');
+    exit();
+}
+
+// Create a new Database object and get the connection
+$database = new Database();
+$conn = $database->getConnection();
+
+// Fetch tasks from the database
+$tasks = [];
+try {
+    // SQL query to fetch tasks
+    $sql = "SELECT t.id, t.title, t.description, t.status, t.type, t.assigned_to, u.name as assigned_to_name
+            FROM tasks t
+            LEFT JOIN users u ON t.assigned_to = u.id"; // Assuming 'tasks' and 'users' are your tables
+
+    $stmt = $conn->prepare($sql);
+    $stmt->execute();
+    $tasks = $stmt->fetchAll(PDO::FETCH_ASSOC); // Fetch all tasks as an associative array
+} catch (PDOException $e) {
+    echo "Error fetching tasks: " . $e->getMessage();
+}
+
+// If no tasks found, set an empty array
+if (empty($tasks)) {
+    $tasks = [];
+}
+?>
 <!DOCTYPE html>
 <html lang="en">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>User Management - TaskFlow</title>
+    <title>Task List - TaskFlow</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/alpinejs@2.8.2/dist/alpine.min.js" defer></script>
-    <script src="script.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 
-<body class="bg-gray-100" x-data="modalData">
-    <div class="container mx-auto mt-10" x-data="{ showModal: false, userId: null }">
+<body class="bg-gray-100">
+    <div class="container mx-auto mt-10">
         <div class="flex justify-between items-center mb-5">
-            <h1 class="text-3xl font-bold">User Management</h1>
+            <h1 class="text-3xl font-bold">Task List</h1>
             <div>
-                <a href="index.php?action=tasks"
-                    class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">Back to Tasks</a>
+                <?php if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin'): ?>
+                <a href="index.php?action=create_task"
+                    class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">Create New Task</a>
+                <a href="index.php?action=list_users"
+                    class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded ml-2">Manage Users</a>
+                <?php endif; ?>
+                <a href="index.php?action=logout"
+                    class="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded ml-2">Logout</a>
             </div>
         </div>
-        <table class="w-full bg-white shadow-md rounded">
+
+        <!-- Table to display tasks -->
+        <table class="w-full bg-white shadow-md rounded mb-4">
             <thead>
                 <tr class="bg-gray-200 text-gray-600 uppercase text-sm leading-normal">
-                    <th class="py-3 px-6 text-left">Username</th>
-                    <th class="py-3 px-6 text-left">Email</th>
-                    <th class="py-3 px-6 text-left">Role</th>
+                    <th class="py-3 px-6 text-left">Title</th>
+                    <th class="py-3 px-6 text-left">Description</th>
+                    <th class="py-3 px-6 text-left">Status</th>
+                    <th class="py-3 px-6 text-left">Type</th>
+                    <th class="py-3 px-6 text-left">Assigned To</th>
                     <th class="py-3 px-6 text-left">Actions</th>
                 </tr>
             </thead>
             <tbody class="text-gray-600 text-sm font-light">
-                <?php foreach ($users as $user): ?>
+                <?php if (!empty($tasks)): ?>
+                <?php foreach ($tasks as $task): ?>
                 <tr class="border-b border-gray-200 hover:bg-gray-100">
-                    <td class="py-3 px-6 text-left whitespace-nowrap"><?php echo htmlspecialchars($user['username']); ?>
+                    <td class="py-3 px-6 text-left whitespace-nowrap"><?php echo htmlspecialchars($task['title']); ?>
                     </td>
-                    <td class="py-3 px-6 text-left"><?php echo htmlspecialchars($user['email']); ?></td>
-                    <td class="py-3 px-6 text-left"><?php echo htmlspecialchars($user['role']); ?></td>
+                    <td class="py-3 px-6 text-left"><?php echo htmlspecialchars($task['description']); ?></td>
                     <td class="py-3 px-6 text-left">
-                        <a href="index.php?action=edit_user&id=<?php echo $user['id']; ?>"
+                        <select class="status-select" data-task-id="<?php echo $task['id']; ?>"
+                            data-original-status="<?php echo $task['status']; ?>"
+                            <?php echo $_SESSION['role'] !== 'admin' && $task['assigned_to'] != $_SESSION['user_id'] ? 'disabled' : ''; ?>>
+                            <option value="todo" <?php echo $task['status'] === 'todo' ? 'selected' : ''; ?>>To Do
+                            </option>
+                            <option value="doing" <?php echo $task['status'] === 'doing' ? 'selected' : ''; ?>>Doing
+                            </option>
+                            <option value="done" <?php echo $task['status'] === 'done' ? 'selected' : ''; ?>>Done
+                            </option>
+                        </select>
+                    </td>
+                    <td class="py-3 px-6 text-left"><?php echo htmlspecialchars($task['type']); ?></td>
+                    <td class="py-3 px-6 text-left"><?php echo htmlspecialchars($task['assigned_to_name']); ?></td>
+                    <td class="py-3 px-6 text-left">
+                        <?php if ($_SESSION['role'] === 'admin'): ?>
+                        <a href="index.php?action=update_task&id=<?php echo $task['id']; ?>"
                             class="text-blue-600 hover:text-blue-900 mr-2">Edit</a>
-                        <button @click="openModal(<?php echo $user['id']; ?>, 'user')"
-                            class="text-red-600 hover:text-red-900">Delete</button>
+                        <a href="#" onclick="confirmDelete(<?php echo $task['id']; ?>)"
+                            class="text-red-600 hover:text-red-900">Delete</a>
+                        <?php endif; ?>
                     </td>
                 </tr>
                 <?php endforeach; ?>
+                <?php else: ?>
+                <tr>
+                    <td colspan="6" class="py-3 px-6 text-center">No tasks available</td>
+                </tr>
+                <?php endif; ?>
             </tbody>
         </table>
-
-        <!-- Delete Confirmation Modal -->
-        <div x-show="showModal" class="fixed z-10 inset-0 overflow-y-auto" aria-labelledby="modal-title" role="dialog"
-            aria-modal="true">
-            <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-                <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true"></div>
-                <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
-                <div
-                    class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
-                    <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-                        <div class="sm:flex sm:items-start">
-                            <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
-                                <h3 class="text-lg leading-6 font-medium text-gray-900" id="modal-title">
-                                    Delete User
-                                </h3>
-                                <div class="mt-2">
-                                    <p class="text-sm text-gray-500">
-                                        Are you sure you want to delete this user? This action cannot be undone.
-                                    </p>
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
-                        <button @click="confirmDelete()" type="button"
-                            class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:ml-3 sm:w-auto sm:text-sm">
-                            Delete
-                        </button>
-                        <button @click="closeModal()" type="button"
-                            class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
-                            Cancel
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
     </div>
+
+    <script>
+    function confirmDelete(taskId) {
+        Swal.fire({
+            title: 'Are you sure?',
+            text: "You won't be able to revert this!",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Yes, delete it!'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                window.location.href =
+                    `index.php?action=delete_task&id=${taskId}&csrf_token=<?php echo $csrf_token; ?>`;
+            }
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const statusSelects = document.querySelectorAll('.status-select');
+        statusSelects.forEach(select => {
+            select.addEventListener('change', function() {
+                const taskId = this.getAttribute('data-task-id');
+                const newStatus = this.value;
+                updateTaskStatus(taskId, newStatus);
+            });
+        });
+    });
+
+    function updateTaskStatus(taskId, newStatus) {
+        fetch('index.php?action=update_task_status', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRF-Token': '<?php echo $csrf_token; ?>'
+                },
+                body: `id=${taskId}&status=${newStatus}&csrf_token=<?php echo $csrf_token; ?>`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Success!',
+                        text: 'Task status updated successfully',
+                        timer: 1500,
+                        showConfirmButton: false
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Update Failed',
+                        text: data.message || 'Failed to update task status',
+                    });
+                    // Revert the select element to its original value
+                    document.querySelector(`select[data-task-id="${taskId}"]`).value = document.querySelector(
+                        `select[data-task-id="${taskId}"]`).getAttribute('data-original-status');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Oops...',
+                    text: 'An error occurred while updating task status',
+                });
+                // Revert the select element to its original value
+                document.querySelector(`select[data-task-id="${taskId}"]`).value = document.querySelector(
+                    `select[data-task-id="${taskId}"]`).getAttribute('data-original-status');
+            });
+    }
+    </script>
 </body>
 
 </html>
