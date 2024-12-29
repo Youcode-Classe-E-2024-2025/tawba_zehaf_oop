@@ -28,26 +28,28 @@ switch ($action) {
     case 'tasks':
         $taskController->index();
         break;
-    case 'create_task':
-        $taskController->create();
+    case 'create_task': if ($_SESSION['user_role'] === 'admin') {
+        $taskController->create();}
         break;
-    case 'update_task':
-        $taskController->update();
+    case 'update_task': if ($_SESSION['user_role'] === 'admin') {
+        $taskController->update();}
         break;
-    case 'delete_task':
-        $taskController->delete();
+    case 'delete_task': if ($_SESSION['user_role'] === 'admin') {
+        $taskController->delete();}
         break;
     case 'update_task_status':
+        if ($_SESSION['user_role'] === 'admin') {
         $taskController->updateStatus();
+    }
         break;
-    case 'list_users':
-        $userController->listUsers();
+    case 'list_users': if ($_SESSION['user_role'] === 'admin') {
+        $userController->listUsers();}
         break;
-    case 'edit_user':
-        $userController->editUser();
+    case 'edit_user': if ($_SESSION['user_role'] === 'admin') {
+        $userController->editUser();}
         break;
-    case 'delete_user':
-        $userController->deleteUser();
+    case 'delete_user':  if ($_SESSION['user_role'] === 'admin') {
+        $userController->deleteUser();}
         break;
     default:
         header("Location: index.php?action=login");
