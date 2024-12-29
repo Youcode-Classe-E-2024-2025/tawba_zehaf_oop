@@ -1,34 +1,35 @@
-# TaskFlow - Task Management System
+# TaskFlow - PHP MVC Task Management Application
 
-A simple task management system built with PHP using MVC architecture.
+## Table of Contents
+1. [Introduction](#introduction)
+2. [Features](#features)
+3. [Requirements](#requirements)
+4. [Installation](#installation)
+5. [Project Structure](#project-structure)
+6. [Database Schema](#database-schema)
+7. [Usage](#usage)
+8. [Security](#security)
+9. [Contributing](#contributing)
+10. [License](#license)
 
-## Deployment Instructions
+## Introduction
+TaskFlow is a PHP-based MVC (Model-View-Controller) task management application. It allows users to create, manage, and track tasks with different statuses and types. The application supports user roles (admin and regular users) with varying levels of access and permissions.
 
-1. Server Requirements:
-   - PHP 7.4 or higher
-   - MySQL 5.7 or higher
-   - Apache with mod_rewrite enabled
+## Features
+- User authentication (login, logout, registration)
+- Role-based access control (admin and regular users)
+- Task management (create, read, update, delete)
+- Task status updates
+- User management (for admins)
+- Responsive design using Tailwind CSS
+- CSRF protection
+- Input sanitization and validation
 
-2. Database Setup:
-   - Create a MySQL database
-   - Import `config/init.sql`
-   - Update database credentials in `config/config.php`
+## Requirements
+- PHP 7.4 or higher
+- MySQL 5.7 or higher
+- Web server (e.g., Apache, Nginx)
+- Composer (for managing dependencies)
 
-3. Application Setup:
-   - Upload all files to your web server
-   - Ensure the web server has write permissions for the `logs` directory
-   - Configure your domain to point to the `public` directory
-
-4. Configuration:
-   - Update `BASE_URL` in `config/config.php`
-   - Set `DEBUG_MODE` to `false` in production
-
-## Directory Structure
-
-```
-taskflow/
-├── config/         # Configuration files
-├── controllers/    # MVC Controllers
-├── models/         # MVC Models
-├── views/          # MVC Views
-└── public/         # Public assets
+## Installation
+1. Clone the repository:
