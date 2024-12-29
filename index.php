@@ -28,27 +28,27 @@ switch ($action) {
     case 'tasks':
         $taskController->index();
         break;
-    case 'create_task': if ($_SESSION['user_role'] === 'admin') {
+    case 'create_task': if ($_SESSION['role'] === 'admin') {
         $taskController->create();}
         break;
-    case 'update_task': if ($_SESSION['user_role'] === 'admin') {
+    case 'update_task': if ($_SESSION['role'] === 'admin') {
         $taskController->update();}
         break;
-    case 'delete_task': if ($_SESSION['user_role'] === 'admin') {
+    case 'delete_task': if ($_SESSION['role'] === 'admin') {
         $taskController->delete();}
         break;
     case 'update_task_status':
-        if ($_SESSION['user_role'] === 'admin') {
+        if ($_SESSION['role'] === 'admin') {
         $taskController->updateStatus();
     }
         break;
-    case 'list_users': if ($_SESSION['user_role'] === 'admin') {
+    case 'list_users': if ($_SESSION['role'] === 'admin') {
         $userController->listUsers();}
         break;
-    case 'edit_user': if ($_SESSION['user_role'] === 'admin') {
+    case 'edit_user': if ($_SESSION['role'] === 'admin') {
         $userController->editUser();}
         break;
-    case 'delete_user':  if ($_SESSION['user_role'] === 'admin') {
+    case 'delete_user':  if ($_SESSION['role'] === 'admin') {
         $userController->deleteUser();}
         break;
     default:
