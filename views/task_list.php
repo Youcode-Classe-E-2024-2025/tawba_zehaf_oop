@@ -1,6 +1,6 @@
 <?php
 // Include the Database class
-include 'config/database.php';
+include 'config/Database.php';
 
 // Start the session
 session_start();
